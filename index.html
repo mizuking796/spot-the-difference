@@ -1013,6 +1013,11 @@
       tutorialOverlay.classList.add('hidden');
     }
 
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
     // View switching
     const selectionScreen = document.getElementById('selectionScreen');
     const uploadView = document.getElementById('uploadView');
