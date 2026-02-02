@@ -1,11 +1,11 @@
 const CACHE_NAME = 'machigai-filter-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/camera.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  './',
+  './index.html',
+  './camera.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {

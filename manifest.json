@@ -2,7 +2,7 @@
   "name": "まちがいさがしフィルター",
   "short_name": "まちがいフィルター",
   "description": "間違い探しの違いを簡単に見つけるアプリ",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#fff0f5",
   "theme_color": "#ff69b4",
