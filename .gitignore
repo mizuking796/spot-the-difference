@@ -1,0 +1,8 @@
+# SSL certificates
+*.pem
+
+# Local server
+server.py
+
+# OS files
+.DS_Store

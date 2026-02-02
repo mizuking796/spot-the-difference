@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#ff69b4">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>まちがいさがしフィルター♡</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+      background: linear-gradient(135deg, #ffeef8, #fff0f5);
+      color: #ff69b4;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #preview {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      overflow: hidden;
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    #cameraVideo, #resultCanvas {
+      object-fit: contain;
+    }
+
+    /* Portrait mode */
+    @media (orientation: portrait) {
+      #cameraVideo, #resultCanvas {
+        width: 100%;
+        height: auto;
+        max-height: 100%;
+      }
+    }
+
+    /* Landscape mode */
+    @media (orientation: landscape) {
+      #cameraVideo, #resultCanvas {
+        height: 100%;
+        width: auto;
+        max-width: 100%;
+      }
+    }
+
+    #resultCanvas {
+      display: none;
+    }
+
+    /* Center guide line */
+    .guide-line {
+      position: absolute;
+      background: rgba(255, 105, 180, 0.7);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .guide-line.vertical {
+      width: 3px;
+      height: 100%;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
+    }
+
+    .guide-line.horizontal {
+      width: 100%;
+      height: 3px;
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+    }
+
+    .guide-line.hidden {
+      display: none;
+    }
+
+    .controls {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+    }
+
+    .controls.corner {
+      top: auto;
+      left: auto;
+      bottom: 80px;
+      right: 20px;
+      transform: none;
+    }
+
+    .capture-btn {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: 5px solid rgba(255, 255, 255, 0.9);
+      background: linear-gradient(135deg, #ff69b4, #ff1493);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px rgba(255, 105, 180, 0.5);
+    }
+
+    .capture-btn:active {
+      transform: scale(0.92);
+    }
+
+    .capture-btn.small {
+      width: 50px;
+      height: 50px;
+      font-size: 1.5rem;
+      border-width: 3px;
+    }
+
+    .capture-btn.processing {
+      background: linear-gradient(135deg, #ff85c1, #ff69b4);
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 4px 20px rgba(255, 105, 180, 0.5); }
+      50% { box-shadow: 0 4px 30px rgba(255, 105, 180, 0.8); }
+    }
+
+    .status {
+      position: absolute;
+      top: 55px;
+      left: 15px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #ff1493;
+      text-shadow: 0 0 10px rgba(255,255,255,0.8);
+      background: rgba(255, 255, 255, 0.85);
+      padding: 8px 12px;
+      border-radius: 15px;
+      backdrop-filter: blur(5px);
+      line-height: 1.5;
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      padding: 8px 18px;
+      background: linear-gradient(135deg, #ffb6c1, #ff69b4);
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 2px 10px rgba(255, 105, 180, 0.3);
+      z-index: 30;
+    }
+
+    .speed-control {
+      position: absolute;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      color: #ff69b4;
+      font-size: 0.8rem;
+      font-weight: bold;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 10px 14px;
+      border-radius: 20px;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 2px 15px rgba(255, 105, 180, 0.2);
+    }
+
+    .speed-control input {
+      width: 80px;
+      accent-color: #ff69b4;
+    }
+
+    .speed-control.visible {
+      display: flex;
+    }
+
+    .split-toggle {
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 5px;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 4px;
+      border-radius: 20px;
+      box-shadow: 0 2px 15px rgba(255, 105, 180, 0.2);
+      backdrop-filter: blur(5px);
+    }
+
+    .split-btn {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 15px;
+      background: transparent;
+      color: #ffb6c1;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .split-btn.active {
+      background: linear-gradient(135deg, #ff69b4, #ff1493);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(255, 105, 180, 0.4);
+    }
+
+    .emoji-deco {
+      position: absolute;
+      font-size: 2rem;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    /* Loading Screen */
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #ffeef8, #fff0f5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.5s;
+    }
+
+    .loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-title {
+      font-size: 1.5rem;
+      color: #ff1493;
+      margin-bottom: 30px;
+      font-weight: bold;
+    }
+
+    .loading-hearts {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    .loading-heart {
+      font-size: 2rem;
+      animation: heartBounce 0.6s ease-in-out infinite;
+    }
+
+    .loading-heart:nth-child(1) { animation-delay: 0s; }
+    .loading-heart:nth-child(2) { animation-delay: 0.1s; }
+    .loading-heart:nth-child(3) { animation-delay: 0.2s; }
+    .loading-heart:nth-child(4) { animation-delay: 0.3s; }
+    .loading-heart:nth-child(5) { animation-delay: 0.4s; }
+
+    @keyframes heartBounce {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-15px) scale(1.2); }
+    }
+
+    .loading-bar-container {
+      width: 200px;
+      height: 12px;
+      background: rgba(255, 182, 193, 0.4);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .loading-bar {
+      height: 100%;
+      width: 30%;
+      background: linear-gradient(90deg, #ff69b4, #ff1493, #ff69b4);
+      background-size: 200% 100%;
+      border-radius: 10px;
+      animation: loadingSlide 1.5s ease-in-out infinite;
+    }
+
+    @keyframes loadingSlide {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(400%); }
+    }
+
+    .loading-text {
+      color: #ff69b4;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .loading-sparkles {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .sparkle {
+      position: absolute;
+      font-size: 1.5rem;
+      animation: sparkleFloat 3s ease-in-out infinite;
+      opacity: 0.6;
+    }
+
+    @keyframes sparkleFloat {
+      0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+      50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
+    }
+
+    /* Tutorial Styles */
+    .tutorial-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #ffeef8, #fff0f5);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      transition: opacity 0.5s;
+    }
+
+    .tutorial-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .tutorial-slides {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tutorial-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 25px;
+      text-align: center;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.4s ease;
+    }
+
+    .tutorial-slide.active {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .tutorial-slide.prev {
+      transform: translateX(-100%);
+    }
+
+    .tutorial-emoji {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      animation: tutorialBounce 2s ease-in-out infinite;
+    }
+
+    @keyframes tutorialBounce {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .tutorial-title {
+      font-size: 1.4rem;
+      color: #ff1493;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .tutorial-text {
+      font-size: 1rem;
+      color: #ff69b4;
+      line-height: 1.8;
+      max-width: 300px;
+    }
+
+    .tutorial-image {
+      width: 90%;
+      max-width: 300px;
+      height: 180px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 15px;
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(255, 105, 180, 0.2);
+      position: relative;
+      overflow: hidden;
+      border: 3px solid #ffb6c1;
+    }
+
+    .tutorial-image-split {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: #ff69b4;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .tutorial-image-split.horizontal {
+      width: 100%;
+      height: 3px;
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+    }
+
+    .tutorial-controls {
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .tutorial-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tutorial-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ffb6c1;
+      transition: all 0.3s;
+    }
+
+    .tutorial-dot.active {
+      background: #ff1493;
+      transform: scale(1.3);
+    }
+
+    .tutorial-btn {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 25px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .tutorial-btn.primary {
+      background: linear-gradient(135deg, #ff69b4, #ff1493);
+      color: white;
+      box-shadow: 0 4px 15px rgba(255, 105, 180, 0.4);
+    }
+
+    .tutorial-btn.secondary {
+      background: rgba(255, 182, 193, 0.5);
+      color: #ff1493;
+    }
+
+    .tutorial-skip {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      color: #ffb6c1;
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 8px 15px;
+    }
+
+    .tutorial-tip {
+      background: rgba(255, 255, 255, 0.7);
+      padding: 12px 18px;
+      border-radius: 15px;
+      margin-top: 15px;
+      font-size: 0.85rem;
+      color: #ff69b4;
+    }
+
+    .help-btn {
+      position: absolute;
+      top: 60px;
+      right: 15px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85);
+      border: none;
+      color: #ff69b4;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(255, 105, 180, 0.2);
+      z-index: 30;
+    }
+
+    .tutorial-agreement {
+      margin: 20px 0 10px;
+    }
+
+    .agreement-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #ff1493;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .agreement-label input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #ff69b4;
+    }
+
+    .tutorial-dev {
+      margin-top: 15px;
+      font-size: 0.75rem;
+      color: #ffb6c1;
+    }
+
+    .tutorial-btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <!-- Tutorial Overlay -->
+  <div class="tutorial-overlay" id="tutorialOverlay">
+
+    <div class="tutorial-slides">
+      <!-- Slide 1: Welcome -->
+      <div class="tutorial-slide active" data-slide="0">
+        <div class="tutorial-emoji">📸💖</div>
+        <div class="tutorial-title">ようこそ！</div>
+        <div class="tutorial-text">
+          まちがいさがしフィルターへ♡<br>
+          かんたんに間違いが見つかるよ！
+        </div>
+        <div class="tutorial-tip">✨ 使い方を説明するね</div>
+      </div>
+
+      <!-- Slide 2: How to capture -->
+      <div class="tutorial-slide" data-slide="1">
+        <div class="tutorial-emoji">🎯</div>
+        <div class="tutorial-title">撮り方のコツ</div>
+        <div class="tutorial-image">
+          <span style="position:absolute;left:10px;top:10px;font-size:1.2rem;">🌸</span>
+          <span style="position:absolute;left:15%;top:50%;transform:translateY(-50%);font-size:2rem;">🐱</span>
+          <span style="position:absolute;right:15%;top:50%;transform:translateY(-50%);font-size:2rem;">🐱</span>
+          <span style="position:absolute;right:10px;bottom:10px;font-size:1.2rem;">⭐</span>
+          <div class="tutorial-image-split"></div>
+        </div>
+        <div class="tutorial-text">
+          画面いっぱいに写してね！<br>
+          <strong>区切り線</strong>を真ん中の線に合わせよう
+        </div>
+      </div>
+
+      <!-- Slide 3: Split direction -->
+      <div class="tutorial-slide" data-slide="2">
+        <div class="tutorial-emoji">↔️ ↕️</div>
+        <div class="tutorial-title">左右？上下？</div>
+        <div class="tutorial-text">
+          間違い探しの並び方に合わせて<br>
+          <strong>左右</strong>か<strong>上下</strong>を選んでね
+        </div>
+        <div class="tutorial-tip">💡 上のボタンで切り替えられるよ</div>
+      </div>
+
+      <!-- Slide 4: Methods -->
+      <div class="tutorial-slide" data-slide="3">
+        <div class="tutorial-emoji">🔬</div>
+        <div class="tutorial-title">いろんな方式</div>
+        <div class="tutorial-text">
+          トップページには<br>
+          いろんな位置合わせ方式があるよ！<br><br>
+          うまくいかない時は<br>
+          <strong>手動でずらす</strong>こともできるよ
+        </div>
+      </div>
+
+      <!-- Slide 5: Agreement -->
+      <div class="tutorial-slide" data-slide="4">
+        <div class="tutorial-emoji">📜</div>
+        <div class="tutorial-title">利用規約</div>
+        <div class="tutorial-text" style="font-size:0.85rem; line-height:1.6;">
+          このアプリは間違い探しの補助ツールです。撮影した画像はお使いの端末内でのみ処理され、外部に送信されることはありません。本アプリの利用によって生じた損害について、開発者は責任を負いかねます。
+        </div>
+        <div class="tutorial-agreement">
+          <label class="agreement-label">
+            <input type="checkbox" id="agreeCheck">
+            <span>上記に同意します</span>
+          </label>
+        </div>
+        <div class="tutorial-dev">開発: 特定非営利活動法人リハビリコラボレーション</div>
+      </div>
+    </div>
+
+    <div class="tutorial-controls">
+      <div class="tutorial-dots">
+        <div class="tutorial-dot active" data-dot="0"></div>
+        <div class="tutorial-dot" data-dot="1"></div>
+        <div class="tutorial-dot" data-dot="2"></div>
+        <div class="tutorial-dot" data-dot="3"></div>
+        <div class="tutorial-dot" data-dot="4"></div>
+      </div>
+    </div>
+    <div style="padding: 0 20px 30px; display: flex; justify-content: center;">
+      <button class="tutorial-btn primary" id="tutorialNext">つぎへ →</button>
+    </div>
+  </div>
+
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-sparkles">
+      <span class="sparkle" style="top: 10%; left: 10%;">✨</span>
+      <span class="sparkle" style="top: 20%; right: 15%; animation-delay: 0.5s;">💫</span>
+      <span class="sparkle" style="top: 60%; left: 8%; animation-delay: 1s;">⭐</span>
+      <span class="sparkle" style="top: 70%; right: 12%; animation-delay: 1.5s;">✨</span>
+      <span class="sparkle" style="top: 40%; left: 5%; animation-delay: 0.8s;">💖</span>
+      <span class="sparkle" style="top: 80%; right: 20%; animation-delay: 0.3s;">🌟</span>
+    </div>
+    <div class="loading-title">📷 カメラ準備中...</div>
+    <div class="loading-hearts">
+      <span class="loading-heart">💗</span>
+      <span class="loading-heart">💖</span>
+      <span class="loading-heart">💕</span>
+      <span class="loading-heart">💖</span>
+      <span class="loading-heart">💗</span>
+    </div>
+    <div class="loading-bar-container">
+      <div class="loading-bar"></div>
+    </div>
+    <div class="loading-text">まちがいさがしフィルター♡</div>
+  </div>
+
+  <div class="container">
+    <div id="preview">
+      <video id="cameraVideo" autoplay playsinline></video>
+      <canvas id="resultCanvas"></canvas>
+      <div class="guide-line vertical" id="guideV"></div>
+      <div class="guide-line horizontal hidden" id="guideH"></div>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <a href="index.html" class="back-btn">✕</a>
+    <button class="help-btn" id="helpBtn">？</button>
+
+    <div class="split-toggle" id="splitToggle">
+      <button class="split-btn active" data-dir="horizontal">↔️ 左右</button>
+      <button class="split-btn" data-dir="vertical">↕️ 上下</button>
+    </div>
+
+    <div class="speed-control" id="speedControl">
+      <span>🐢</span>
+      <input type="range" id="speed" min="100" max="800" value="300">
+      <span>🐇</span>
+    </div>
+
+    <div class="controls">
+      <button class="capture-btn" id="captureBtn">📸</button>
+    </div>
+
+    <span class="emoji-deco" style="top:15%; left:5%;">✨</span>
+    <span class="emoji-deco" style="top:25%; right:8%;">💕</span>
+    <span class="emoji-deco" style="bottom:20%; left:10%;">🔍</span>
+    <span class="emoji-deco" style="bottom:15%; right:5%;">⭐</span>
+  </div>
+
+  <script>
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('resultCanvas');
+    const ctx = canvas.getContext('2d');
+    const captureBtn = document.getElementById('captureBtn');
+    const status = document.getElementById('status');
+    const speedControl = document.getElementById('speedControl');
+    const speedSlider = document.getElementById('speed');
+    const guideV = document.getElementById('guideV');
+    const guideH = document.getElementById('guideH');
+    const controlsDiv = document.querySelector('.controls');
+
+    let stream = null;
+    let isShowingResult = false;
+    let blinkInterval = null;
+    let canvas1 = null, canvas2 = null;
+    let splitDirection = 'horizontal';
+
+    // Split direction toggle
+    document.querySelectorAll('.split-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.split-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        splitDirection = btn.dataset.dir;
+
+        // Update guide line
+        if (splitDirection === 'horizontal') {
+          guideV.classList.remove('hidden');
+          guideH.classList.add('hidden');
+        } else {
+          guideV.classList.add('hidden');
+          guideH.classList.remove('hidden');
+        }
+      });
+    });
+
+    const loadingScreen = document.getElementById('loadingScreen');
+    const tutorialOverlay = document.getElementById('tutorialOverlay');
+    const tutorialNext = document.getElementById('tutorialNext');
+    const helpBtn = document.getElementById('helpBtn');
+    const tutorialSlides = document.querySelectorAll('.tutorial-slide');
+    const tutorialDots = document.querySelectorAll('.tutorial-dot');
+    const agreeCheck = document.getElementById('agreeCheck');
+
+    let currentSlide = 0;
+    const totalSlides = tutorialSlides.length;
+
+    // Check if tutorial was seen before
+    const tutorialSeen = localStorage.getItem('tutorialSeen');
+
+    function showSlide(index) {
+      tutorialSlides.forEach((slide, i) => {
+        slide.classList.remove('active', 'prev');
+        if (i === index) {
+          slide.classList.add('active');
+        } else if (i < index) {
+          slide.classList.add('prev');
+        }
+      });
+
+      tutorialDots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
+      });
+
+      // Update button on last slide
+      if (index === totalSlides - 1) {
+        tutorialNext.textContent = '同意してはじめる 🎀';
+        updateAgreeButton();
+      } else {
+        tutorialNext.textContent = 'つぎへ →';
+        tutorialNext.classList.remove('disabled');
+      }
+    }
+
+    function updateAgreeButton() {
+      if (currentSlide === totalSlides - 1) {
+        if (agreeCheck.checked) {
+          tutorialNext.classList.remove('disabled');
+        } else {
+          tutorialNext.classList.add('disabled');
+        }
+      }
+    }
+
+    agreeCheck.addEventListener('change', updateAgreeButton);
+
+    function closeTutorial() {
+      tutorialOverlay.classList.add('hidden');
+      localStorage.setItem('tutorialSeen', 'true');
+      status.innerHTML = '🎀 線を真ん中にしてね<br>📐 画面いっぱいに写そう';
+    }
+
+    function openTutorial() {
+      currentSlide = 0;
+      agreeCheck.checked = false;
+      showSlide(0);
+      tutorialOverlay.classList.remove('hidden');
+    }
+
+    tutorialNext.addEventListener('click', () => {
+      if (currentSlide < totalSlides - 1) {
+        currentSlide++;
+        showSlide(currentSlide);
+      } else if (agreeCheck.checked) {
+        closeTutorial();
+      }
+    });
+
+    helpBtn.addEventListener('click', openTutorial);
+
+    // Dot click navigation
+    tutorialDots.forEach((dot, i) => {
+      dot.addEventListener('click', () => {
+        currentSlide = i;
+        showSlide(currentSlide);
+      });
+    });
+
+    // Swipe support for tutorial
+    let touchStartX = 0;
+    tutorialOverlay.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+    });
+
+    tutorialOverlay.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const diff = touchStartX - touchEndX;
+
+      if (Math.abs(diff) > 50) {
+        if (diff > 0 && currentSlide < totalSlides - 1) {
+          currentSlide++;
+          showSlide(currentSlide);
+        } else if (diff < 0 && currentSlide > 0) {
+          currentSlide--;
+          showSlide(currentSlide);
+        }
+      }
+    });
+
+    // Hide tutorial if already seen
+    if (tutorialSeen) {
+      tutorialOverlay.classList.add('hidden');
+    }
+
+    // Start camera
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          }
+        });
+        video.srcObject = stream;
+
+        // Hide loading screen when video is ready
+        video.onloadedmetadata = () => {
+          loadingScreen.classList.add('hidden');
+          // Only show status if tutorial is not visible
+          if (tutorialSeen || tutorialOverlay.classList.contains('hidden')) {
+            status.innerHTML = '🎀 線を真ん中にしてね<br>📐 画面いっぱいに写そう';
+          }
+        };
+      } catch (err) {
+        // Hide tutorial on error to show error screen
+        tutorialOverlay.classList.add('hidden');
+        // Show error on loading screen
+        loadingScreen.querySelector('.loading-title').textContent = '😢 カメラエラー';
+        loadingScreen.querySelector('.loading-hearts').innerHTML = '<span style="font-size:3rem;">📵</span>';
+        loadingScreen.querySelector('.loading-bar-container').style.display = 'none';
+        loadingScreen.querySelector('.loading-text').textContent = 'カメラへのアクセスを許可してね';
+      }
+    }
+
+    // Capture and process
+    captureBtn.addEventListener('click', async () => {
+      if (isShowingResult) {
+        // Return to camera
+        stopBlinking();
+        video.style.display = 'block';
+        canvas.style.display = 'none';
+        guideV.classList.remove('hidden');
+        if (splitDirection === 'vertical') {
+          guideV.classList.add('hidden');
+          guideH.classList.remove('hidden');
+        }
+        captureBtn.textContent = '📸';
+        captureBtn.classList.remove('processing', 'small');
+        controlsDiv.classList.remove('corner');
+        speedControl.classList.remove('visible');
+        document.getElementById('splitToggle').style.display = 'flex';
+        isShowingResult = false;
+        status.innerHTML = '🎀 線を真ん中にしてね<br>📐 画面いっぱいに写そう';
+        return;
+      }
+
+      // Capture
+      status.textContent = '✨ 処理中...';
+      captureBtn.textContent = '⏳';
+
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+
+      // Create capture canvas
+      const captureCanvas = document.createElement('canvas');
+      captureCanvas.width = w;
+      captureCanvas.height = h;
+      const captureCtx = captureCanvas.getContext('2d');
+      captureCtx.drawImage(video, 0, 0);
+
+      // Use selected split direction
+      const isHorizontal = splitDirection === 'horizontal';
+      const halfW = isHorizontal ? Math.floor(w / 2) : w;
+      const halfH = isHorizontal ? h : Math.floor(h / 2);
+
+      // Split into two images
+      canvas1 = document.createElement('canvas');
+      canvas2 = document.createElement('canvas');
+      canvas1.width = canvas2.width = halfW;
+      canvas1.height = canvas2.height = halfH;
+
+      const ctx1 = canvas1.getContext('2d');
+      const ctx2 = canvas2.getContext('2d');
+
+      if (isHorizontal) {
+        ctx1.drawImage(captureCanvas, 0, 0, halfW, halfH, 0, 0, halfW, halfH);
+        ctx2.drawImage(captureCanvas, halfW, 0, halfW, halfH, 0, 0, halfW, halfH);
+      } else {
+        ctx1.drawImage(captureCanvas, 0, 0, halfW, halfH, 0, 0, halfW, halfH);
+        ctx2.drawImage(captureCanvas, 0, halfH, halfW, halfH, 0, 0, halfW, halfH);
+      }
+
+      // Find alignment offset
+      const gray1 = toGrayscale(ctx1.getImageData(0, 0, halfW, halfH));
+      const gray2 = toGrayscale(ctx2.getImageData(0, 0, halfW, halfH));
+
+      const scale = 4;
+      const sw = Math.floor(halfW / scale);
+      const sh = Math.floor(halfH / scale);
+      const small1 = downsample(gray1, halfW, halfH, scale);
+      const small2 = downsample(gray2, halfW, halfH, scale);
+
+      const offset = findOffsetNCC(small1, small2, sw, sh, 25);
+      const dx = -offset.dx * scale;
+      const dy = -offset.dy * scale;
+
+      console.log('Offset:', dx, dy);
+
+      // Setup result canvas
+      canvas.width = halfW;
+      canvas.height = halfH;
+
+      // Hide guide and start blinking
+      guideV.classList.add('hidden');
+      guideH.classList.add('hidden');
+      video.style.display = 'none';
+      canvas.style.display = 'block';
+      captureBtn.textContent = '🔄';
+      captureBtn.classList.add('processing', 'small');
+      controlsDiv.classList.add('corner');
+      speedControl.classList.add('visible');
+      document.getElementById('splitToggle').style.display = 'none';
+      isShowingResult = true;
+      status.textContent = '🔍 さがしてみてね';
+
+      startBlinking(dx, dy);
+    });
+
+    speedSlider.addEventListener('input', () => {
+      if (isShowingResult && canvas1 && canvas2) {
+        stopBlinking();
+        startBlinking(parseInt(canvas.dataset.dx), parseInt(canvas.dataset.dy));
+      }
+    });
+
+    function startBlinking(dx, dy) {
+      canvas.dataset.dx = dx;
+      canvas.dataset.dy = dy;
+
+      let showFirst = true;
+      const speed = 900 - parseInt(speedSlider.value);
+
+      function render() {
+        if (showFirst) {
+          ctx.drawImage(canvas1, 0, 0);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(canvas2, dx, dy);
+        }
+        showFirst = !showFirst;
+      }
+
+      render();
+      blinkInterval = setInterval(render, speed);
+    }
+
+    function stopBlinking() {
+      if (blinkInterval) {
+        clearInterval(blinkInterval);
+        blinkInterval = null;
+      }
+    }
+
+    function toGrayscale(imageData) {
+      const gray = new Float32Array(imageData.width * imageData.height);
+      for (let i = 0; i < gray.length; i++) {
+        const j = i * 4;
+        gray[i] = 0.299 * imageData.data[j] + 0.587 * imageData.data[j+1] + 0.114 * imageData.data[j+2];
+      }
+      return gray;
+    }
+
+    function downsample(gray, width, height, scale) {
+      const sw = Math.floor(width / scale);
+      const sh = Math.floor(height / scale);
+      const result = new Float32Array(sw * sh);
+
+      for (let y = 0; y < sh; y++) {
+        for (let x = 0; x < sw; x++) {
+          let sum = 0;
+          for (let dy = 0; dy < scale; dy++) {
+            for (let dx = 0; dx < scale; dx++) {
+              sum += gray[(y * scale + dy) * width + (x * scale + dx)];
+            }
+          }
+          result[y * sw + x] = sum / (scale * scale);
+        }
+      }
+      return result;
+    }
+
+    function findOffsetNCC(img1, img2, width, height, maxShift) {
+      let bestOffset = { dx: 0, dy: 0, score: -Infinity };
+      const margin = maxShift;
+
+      for (let dy = -maxShift; dy <= maxShift; dy++) {
+        for (let dx = -maxShift; dx <= maxShift; dx++) {
+          let sum1 = 0, sum2 = 0, sum12 = 0, sum11 = 0, sum22 = 0;
+          let count = 0;
+
+          for (let y = margin; y < height - margin; y++) {
+            for (let x = margin; x < width - margin; x++) {
+              const x2 = x + dx;
+              const y2 = y + dy;
+              if (x2 < 0 || x2 >= width || y2 < 0 || y2 >= height) continue;
+
+              const v1 = img1[y * width + x];
+              const v2 = img2[y2 * width + x2];
+
+              sum1 += v1; sum2 += v2;
+              sum12 += v1 * v2;
+              sum11 += v1 * v1; sum22 += v2 * v2;
+              count++;
+            }
+          }
+
+          if (count === 0) continue;
+          const mean1 = sum1 / count, mean2 = sum2 / count;
+          const var1 = sum11 / count - mean1 * mean1;
+          const var2 = sum22 / count - mean2 * mean2;
+          const cov = sum12 / count - mean1 * mean2;
+          const score = cov / (Math.sqrt(var1 * var2) + 0.0001);
+
+          if (score > bestOffset.score) bestOffset = { dx, dy, score };
+        }
+      }
+      return bestOffset;
+    }
+
+    // Handle orientation change
+    let lastOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+
+    function handleOrientationChange() {
+      const currentOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+
+      // Only react if orientation actually changed
+      if (currentOrientation === lastOrientation) return;
+      lastOrientation = currentOrientation;
+
+      // If showing result, reset to camera mode
+      if (isShowingResult) {
+        stopBlinking();
+        video.style.display = 'block';
+        canvas.style.display = 'none';
+        guideV.classList.remove('hidden');
+        if (splitDirection === 'vertical') {
+          guideV.classList.add('hidden');
+          guideH.classList.remove('hidden');
+        }
+        captureBtn.textContent = '📸';
+        captureBtn.classList.remove('processing', 'small');
+        controlsDiv.classList.remove('corner');
+        speedControl.classList.remove('visible');
+        document.getElementById('splitToggle').style.display = 'flex';
+        isShowingResult = false;
+        status.textContent = '🔄 向き変わったよ！撮り直してね';
+        canvas1 = null;
+        canvas2 = null;
+      }
+    }
+
+    window.addEventListener('orientationchange', handleOrientationChange);
+    screen.orientation?.addEventListener('change', handleOrientationChange);
+    window.addEventListener('resize', () => {
+      clearTimeout(window.resizeTimeout);
+      window.resizeTimeout = setTimeout(handleOrientationChange, 100);
+    });
+
+    // Initialize
+    startCamera();
+  </script>
+</body>
+</html>

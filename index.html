@@ -1,0 +1,1922 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ff69b4">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>まちがいさがしフィルター♡</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+      background: linear-gradient(135deg, #ffeef8, #fff0f5);
+      color: #ff69b4;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.6rem;
+      color: #ff1493;
+      text-shadow: 0 2px 10px rgba(255,105,180,0.3);
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .upload-area {
+      margin-bottom: 20px;
+    }
+
+    .upload-box {
+      border: 3px dashed #ffb6c1;
+      border-radius: 20px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(5px);
+    }
+
+    .upload-box:hover {
+      border-color: #ff69b4;
+      background: rgba(255,255,255,0.9);
+      transform: scale(1.01);
+    }
+
+    .upload-box input {
+      display: none;
+    }
+
+    .upload-box img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(255,105,180,0.2);
+    }
+
+    .controls {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #ff69b4, #ff1493);
+      border: none;
+      padding: 14px 35px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #fff;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(255,105,180,0.4);
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 25px rgba(255,105,180,0.5);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .result-area {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 300px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(255,105,180,0.15);
+    }
+
+    #resultCanvas {
+      max-width: 100%;
+      max-height: 70vh;
+    }
+
+    .settings {
+      margin: 20px 0;
+      padding: 18px;
+      background: rgba(255,255,255,0.85);
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(255,105,180,0.15);
+      backdrop-filter: blur(5px);
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .setting-row label {
+      min-width: 80px;
+      color: #ff69b4;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      min-width: 100px;
+      accent-color: #ff69b4;
+    }
+
+    .value-display {
+      min-width: 50px;
+      text-align: right;
+      color: #ff1493;
+      font-weight: bold;
+    }
+
+    .split-options {
+      display: flex;
+      gap: 10px;
+    }
+
+    .split-options label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      padding: 10px 18px;
+      background: #fff0f5;
+      border-radius: 25px;
+      transition: all 0.3s;
+      color: #ffb6c1;
+      font-weight: 600;
+    }
+
+    .split-options input[type="radio"] {
+      accent-color: #ff69b4;
+    }
+
+    .split-options label:has(input:checked) {
+      background: linear-gradient(135deg, #ff69b4, #ff1493);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(255,105,180,0.4);
+    }
+
+    .status {
+      text-align: center;
+      padding: 12px;
+      color: #ff69b4;
+      font-weight: 600;
+    }
+
+    .status:empty {
+      display: none;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.visible {
+      display: flex;
+    }
+
+    .modal-content {
+      background: linear-gradient(135deg, #fff5f8, #fff0f5);
+      border-radius: 20px;
+      max-width: 450px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(255, 105, 180, 0.3);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 20px;
+      border-bottom: 2px solid #ffb6c1;
+    }
+
+    .modal-header h2 {
+      color: #ff1493;
+      font-size: 1.1rem;
+      margin: 0;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: #ff69b4;
+      cursor: pointer;
+      padding: 5px;
+      box-shadow: none;
+    }
+
+    .modal-close:hover {
+      color: #ff1493;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .settings-section {
+      padding: 15px 20px;
+      border-bottom: 1px solid #ffe4ec;
+    }
+
+    .settings-section:last-of-type {
+      border-bottom: none;
+    }
+
+    .settings-section h3 {
+      color: #ff1493;
+      font-size: 0.9rem;
+      margin: 0 0 12px 0;
+    }
+
+    .setting-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+    }
+
+    .setting-item label {
+      flex: 1;
+      color: #ff69b4;
+      font-weight: 500;
+      min-width: 0;
+    }
+
+    .setting-item input[type="range"] {
+      width: 100px;
+      accent-color: #ff69b4;
+    }
+
+    .setting-value {
+      min-width: 55px;
+      text-align: right;
+      color: #ff1493;
+      font-weight: bold;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 0.8rem;
+    }
+
+    .modal-footer {
+      padding: 15px 20px;
+      border-top: 2px solid #ffb6c1;
+      text-align: center;
+    }
+
+    .modal-footer button {
+      background: linear-gradient(135deg, #ffb6c1, #ff69b4);
+      font-size: 0.85rem;
+      padding: 10px 20px;
+    }
+
+    .camera-link {
+      display: block;
+      text-align: center;
+      margin-bottom: 18px;
+      padding: 16px;
+      background: linear-gradient(135deg, #ffb6c1, #ff69b4);
+      border-radius: 30px;
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 15px rgba(255,105,180,0.4);
+      transition: all 0.3s;
+    }
+
+    .camera-link:hover {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(255,105,180,0.5);
+    }
+
+    select {
+      flex: 1;
+      padding: 10px 15px;
+      border-radius: 15px;
+      background: #fff0f5;
+      color: #ff69b4;
+      border: 2px solid #ffb6c1;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #ff69b4;
+    }
+
+    .manual-overlay {
+      display: none;
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 12px 16px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(255,105,180,0.3);
+      z-index: 10;
+    }
+
+    .manual-overlay.visible {
+      display: block;
+    }
+
+    .manual-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: #ff69b4;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .manual-row input[type="range"] {
+      width: 120px;
+      accent-color: #ff69b4;
+    }
+
+    .manual-row span:last-child {
+      min-width: 30px;
+      text-align: right;
+      color: #ff1493;
+    }
+
+    .manual-overlay button {
+      width: 100%;
+      padding: 8px;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .emoji-deco {
+      position: fixed;
+      font-size: 2rem;
+      opacity: 0.2;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    #methodName {
+      text-align: center;
+      color: #ffb6c1;
+      font-size: 0.85rem;
+      margin-bottom: 15px;
+    }
+
+    /* Tutorial Styles */
+    .tutorial-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #ffeef8, #fff0f5);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      transition: opacity 0.5s;
+    }
+
+    .tutorial-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .tutorial-slides {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tutorial-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 25px;
+      text-align: center;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.4s ease;
+    }
+
+    .tutorial-slide.active {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .tutorial-slide.prev {
+      transform: translateX(-100%);
+    }
+
+    .tutorial-emoji {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      animation: tutorialBounce 2s ease-in-out infinite;
+    }
+
+    @keyframes tutorialBounce {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .tutorial-title {
+      font-size: 1.4rem;
+      color: #ff1493;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .tutorial-text {
+      font-size: 1rem;
+      color: #ff69b4;
+      line-height: 1.8;
+      max-width: 300px;
+    }
+
+    .tutorial-tip {
+      background: rgba(255, 255, 255, 0.7);
+      padding: 12px 18px;
+      border-radius: 15px;
+      margin-top: 15px;
+      font-size: 0.85rem;
+      color: #ff69b4;
+    }
+
+    .tutorial-controls {
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .tutorial-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tutorial-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ffb6c1;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .tutorial-dot.active {
+      background: #ff1493;
+      transform: scale(1.3);
+    }
+
+    .tutorial-btn {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 25px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .tutorial-btn.primary {
+      background: linear-gradient(135deg, #ff69b4, #ff1493);
+      color: white;
+      box-shadow: 0 4px 15px rgba(255, 105, 180, 0.4);
+    }
+
+    .tutorial-btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .tutorial-skip {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      color: #ffb6c1;
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 8px 15px;
+    }
+
+    .tutorial-agreement {
+      margin: 20px 0 10px;
+    }
+
+    .agreement-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #ff1493;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .agreement-label input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #ff69b4;
+    }
+
+    .tutorial-dev {
+      margin-top: 15px;
+      font-size: 0.75rem;
+      color: #ffb6c1;
+    }
+
+    .help-btn {
+      position: fixed;
+      top: 70px;
+      right: 15px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ffb6c1, #ff69b4);
+      border: none;
+      color: #fff;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(255, 105, 180, 0.3);
+      z-index: 50;
+    }
+
+    /* Selection Screen */
+    .selection-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      gap: 25px;
+    }
+
+    .selection-screen.hidden {
+      display: none;
+    }
+
+    .selection-title {
+      font-size: 1.3rem;
+      color: #ff69b4;
+      margin-bottom: 10px;
+    }
+
+    .selection-btn {
+      width: 100%;
+      max-width: 280px;
+      padding: 25px 30px;
+      border: none;
+      border-radius: 25px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .selection-btn.camera {
+      background: linear-gradient(135deg, #ff69b4, #ff1493);
+      box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4);
+    }
+
+    .selection-btn.gallery {
+      background: linear-gradient(135deg, #ffb6c1, #ff69b4);
+      box-shadow: 0 6px 20px rgba(255, 182, 193, 0.4);
+    }
+
+    .selection-btn:hover {
+      transform: scale(1.03);
+    }
+
+    .selection-btn .btn-icon {
+      font-size: 1.8rem;
+    }
+
+    .selection-hint {
+      color: #ffb6c1;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    /* Upload View */
+    .upload-view {
+      display: none;
+    }
+
+    .upload-view.visible {
+      display: block;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      background: linear-gradient(135deg, #ffb6c1, #ff69b4);
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(255, 105, 180, 0.3);
+      transition: all 0.3s;
+    }
+
+    .back-btn:hover {
+      transform: scale(1.02);
+    }
+  </style>
+</head>
+<body>
+  <!-- Tutorial Overlay -->
+  <div class="tutorial-overlay" id="tutorialOverlay">
+
+    <div class="tutorial-slides">
+      <!-- Slide 1: Welcome -->
+      <div class="tutorial-slide active" data-slide="0">
+        <div class="tutorial-emoji">🖼️💖</div>
+        <div class="tutorial-title">画像をえらぶモード</div>
+        <div class="tutorial-text">保存した間違い探し画像を<br>読み込んで使えるよ！</div>
+        <div class="tutorial-tip">✨ 使い方を説明するね</div>
+      </div>
+
+      <!-- Slide 2: Upload -->
+      <div class="tutorial-slide" data-slide="1">
+        <div class="tutorial-emoji">📁</div>
+        <div class="tutorial-title">画像をえらぶ</div>
+        <div class="tutorial-text">枠をタップして<br>間違い探しの画像をえらんでね<br><br>左右や上下に2つ並んだ<br>画像を使ってね</div>
+      </div>
+
+      <!-- Slide 3: Split direction -->
+      <div class="tutorial-slide" data-slide="2">
+        <div class="tutorial-emoji">↔️ ↕️</div>
+        <div class="tutorial-title">分割方向をえらぶ</div>
+        <div class="tutorial-text">絵が横に並んでたら<strong>左右</strong><br>縦に並んでたら<strong>上下</strong><br>を選んでね</div>
+        <div class="tutorial-tip">💡 自動で判定するけど確認してね</div>
+      </div>
+
+      <!-- Slide 4: Methods -->
+      <div class="tutorial-slide" data-slide="3">
+        <div class="tutorial-emoji">🔬</div>
+        <div class="tutorial-title">方式をえらぶ</div>
+        <div class="tutorial-text">うまく合わない時は<br>別の方式を試してみてね<br><br><strong>手動オフセット補正</strong>で<br>自分でずらすこともできるよ</div>
+      </div>
+
+      <!-- Slide 5: Find -->
+      <div class="tutorial-slide" data-slide="4">
+        <div class="tutorial-emoji">✨</div>
+        <div class="tutorial-title">ちがいを見つける！</div>
+        <div class="tutorial-text">ボタンを押すと<br>パカパカ点滅がはじまるよ<br><br>ちがう部分が浮かび上がる！</div>
+        <div class="tutorial-tip">⚙️ 詳細設定で微調整もできるよ</div>
+      </div>
+
+      <!-- Slide 6: Agreement -->
+      <div class="tutorial-slide" data-slide="5">
+        <div class="tutorial-emoji">📜</div>
+        <div class="tutorial-title">利用規約</div>
+        <div class="tutorial-text" style="font-size:0.85rem; line-height:1.6;">このアプリは間違い探しの補助ツールです。撮影した画像はお使いの端末内でのみ処理され、外部に送信されることはありません。本アプリの利用によって生じた損害について、開発者は責任を負いかねます。</div>
+        <div class="tutorial-agreement">
+          <label class="agreement-label">
+            <input type="checkbox" id="agreeCheck">
+            <span>上記に同意します</span>
+          </label>
+        </div>
+        <div class="tutorial-dev">開発: 特定非営利活動法人リハビリコラボレーション</div>
+      </div>
+    </div>
+
+    <div class="tutorial-controls">
+      <div class="tutorial-dots">
+        <div class="tutorial-dot active" data-dot="0"></div>
+        <div class="tutorial-dot" data-dot="1"></div>
+        <div class="tutorial-dot" data-dot="2"></div>
+        <div class="tutorial-dot" data-dot="3"></div>
+        <div class="tutorial-dot" data-dot="4"></div>
+        <div class="tutorial-dot" data-dot="5"></div>
+      </div>
+    </div>
+    <div style="padding: 0 20px 30px; display: flex; justify-content: center;">
+      <button class="tutorial-btn primary" id="tutorialNext">つぎへ →</button>
+    </div>
+  </div>
+
+  <!-- Help Button -->
+  <button class="help-btn" id="helpBtn">？</button>
+
+  <span class="emoji-deco" style="top:10%; left:5%;">✨</span>
+  <span class="emoji-deco" style="top:20%; right:8%;">💕</span>
+  <span class="emoji-deco" style="bottom:30%; left:3%;">🔍</span>
+  <span class="emoji-deco" style="bottom:15%; right:5%;">⭐</span>
+  <span class="emoji-deco" style="top:50%; left:2%;">💖</span>
+  <span class="emoji-deco" style="top:70%; right:3%;">🎀</span>
+
+  <div class="container">
+    <h1>💖 まちがいさがしフィルター</h1>
+
+    <!-- Selection Screen -->
+    <div class="selection-screen" id="selectionScreen">
+      <p class="selection-title">どっちでさがす？</p>
+      <a href="camera.html" class="selection-btn camera">
+        <span class="btn-icon">📸</span>
+        <span>カメラで撮影</span>
+      </a>
+      <button class="selection-btn gallery" id="showGalleryBtn">
+        <span class="btn-icon">🖼️</span>
+        <span>画像をえらぶ</span>
+      </button>
+      <p class="selection-hint">💡 カメラは実物を撮るときに便利だよ</p>
+    </div>
+
+    <!-- Upload View -->
+    <div class="upload-view" id="uploadView">
+      <button class="back-btn" id="backToSelectionBtn">← もどる</button>
+      <p id="methodName" style="display:none;"></p>
+
+      <div class="upload-area">
+        <div class="upload-box" id="uploadBox">
+          <input type="file" id="fileInput" accept="image/*">
+          <div class="placeholder" id="placeholder">
+            <p style="font-size: 2rem;">📁</p>
+            <p>まちがいさがし画像をえらんでね</p>
+            <p style="font-size: 0.8rem; color: #ffb6c1; margin-top: 5px;">タップ または ドラッグ&ドロップ</p>
+          </div>
+          <img id="preview" style="display: none;">
+        </div>
+      </div>
+
+      <div class="settings">
+      <div class="setting-row">
+        <label>分割方向:</label>
+        <div class="split-options">
+          <label>
+            <input type="radio" name="splitDir" value="horizontal" checked>
+            ↔️ 左右
+          </label>
+          <label>
+            <input type="radio" name="splitDir" value="vertical">
+            ↕️ 上下
+          </label>
+        </div>
+      </div>
+      <div class="setting-row">
+        <label>方式:</label>
+        <select id="alignMethod">
+          <option value="ncc">正規化相互相関 (NCC)</option>
+          <option value="ncc_edge">Sobel勾配 + NCC</option>
+          <option value="center">中央領域限定NCC</option>
+          <option value="sad">絶対差分和 (SAD)</option>
+          <option value="sad_edge">Sobel勾配 + SAD</option>
+          <option value="manual">手動オフセット補正</option>
+        </select>
+      </div>
+      <div class="setting-row" style="justify-content: flex-end;">
+        <button type="button" id="openSettingsBtn" style="padding: 6px 14px; font-size: 0.8rem; background: linear-gradient(135deg, #ffb6c1, #ff69b4);">⚙️ 詳細設定</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="findBtn" disabled>✨ ちがいを見つける！</button>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>⚙️ 詳細設定</h2>
+          <button type="button" id="closeSettingsBtn" class="modal-close">✕</button>
+        </div>
+
+        <div class="settings-section">
+          <h3>🎨 表示設定</h3>
+          <div class="setting-item">
+            <label>点滅間隔</label>
+            <input type="range" id="blinkSpeedSlider" min="100" max="1000" value="400">
+            <span class="setting-value" id="blinkSpeedValue">400ms</span>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>🔬 位置合わせパラメータ</h3>
+          <div class="setting-item">
+            <label>ダウンサンプル係数</label>
+            <input type="range" id="downsampleScale" min="2" max="8" value="4">
+            <span class="setting-value" id="downsampleScaleValue">4x</span>
+          </div>
+          <div class="setting-item">
+            <label>最大探索シフト量</label>
+            <input type="range" id="maxShift" min="10" max="50" value="25">
+            <span class="setting-value" id="maxShiftValue">±100px</span>
+          </div>
+          <div class="setting-item">
+            <label>区切り線探索範囲</label>
+            <input type="range" id="dividerSearchRange" min="20" max="100" value="50">
+            <span class="setting-value" id="dividerSearchRangeValue">±50px</span>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>🎯 差分検出パラメータ</h3>
+          <div class="setting-item">
+            <label>色差閾値</label>
+            <input type="range" id="thresholdSlider" min="20" max="200" value="45">
+            <span class="setting-value" id="thresholdValue">45</span>
+          </div>
+          <div class="setting-item">
+            <label>検出マージン</label>
+            <input type="range" id="detectionMargin" min="5" max="50" value="15">
+            <span class="setting-value" id="detectionMarginValue">15px</span>
+          </div>
+          <div class="setting-item">
+            <label>最小クラスタサイズ</label>
+            <input type="range" id="minClusterSize" min="10" max="100" value="30">
+            <span class="setting-value" id="minClusterSizeValue">30px²</span>
+          </div>
+          <div class="setting-item">
+            <label>クラスタ結合距離</label>
+            <input type="range" id="clusterMergeDistance" min="10" max="100" value="40">
+            <span class="setting-value" id="clusterMergeDistanceValue">40px</span>
+          </div>
+          <div class="setting-item">
+            <label>最大検出領域数</label>
+            <input type="range" id="maxRegions" min="3" max="20" value="10">
+            <span class="setting-value" id="maxRegionsValue">10</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="resetSettingsBtn">🔄 デフォルトに戻す</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-area">
+      <canvas id="resultCanvas"></canvas>
+      <div id="manualControls" class="manual-overlay">
+        <div class="manual-row">
+          <span>横</span>
+          <input type="range" id="manualDx" min="-100" max="100" value="0">
+          <span id="manualDxValue">0</span>
+        </div>
+        <div class="manual-row">
+          <span>縦</span>
+          <input type="range" id="manualDy" min="-100" max="100" value="0">
+          <span id="manualDyValue">0</span>
+        </div>
+        <button type="button" id="toggleOverlayBtn">🔄 点滅</button>
+      </div>
+    </div>
+    </div><!-- /upload-view -->
+
+  </div>
+
+  <script>
+    // Tutorial
+    const tutorialOverlay = document.getElementById('tutorialOverlay');
+    const tutorialNext = document.getElementById('tutorialNext');
+    const helpBtn = document.getElementById('helpBtn');
+    const tutorialSlides = document.querySelectorAll('.tutorial-slide');
+    const tutorialDots = document.querySelectorAll('.tutorial-dot');
+    const agreeCheck = document.getElementById('agreeCheck');
+
+    let currentSlide = 0;
+    const totalSlides = tutorialSlides.length;
+    const tutorialSeen = localStorage.getItem('tutorialSeen');
+
+    function showSlide(index) {
+      tutorialSlides.forEach((slide, i) => {
+        slide.classList.remove('active', 'prev');
+        if (i === index) slide.classList.add('active');
+        else if (i < index) slide.classList.add('prev');
+      });
+      tutorialDots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
+      });
+      if (index === totalSlides - 1) {
+        tutorialNext.textContent = '同意してはじめる 🎀';
+        updateAgreeButton();
+      } else {
+        tutorialNext.textContent = 'つぎへ →';
+        tutorialNext.classList.remove('disabled');
+      }
+    }
+
+    function updateAgreeButton() {
+      if (currentSlide === totalSlides - 1) {
+        tutorialNext.classList.toggle('disabled', !agreeCheck.checked);
+      }
+    }
+
+    function closeTutorial() {
+      tutorialOverlay.classList.add('hidden');
+      localStorage.setItem('tutorialSeen', 'true');
+    }
+
+    function openTutorial() {
+      currentSlide = 0;
+      agreeCheck.checked = false;
+      showSlide(0);
+      tutorialOverlay.classList.remove('hidden');
+    }
+
+    agreeCheck.addEventListener('change', updateAgreeButton);
+
+    tutorialNext.addEventListener('click', () => {
+      if (currentSlide < totalSlides - 1) {
+        currentSlide++;
+        showSlide(currentSlide);
+      } else if (agreeCheck.checked) {
+        closeTutorial();
+      }
+    });
+
+
+    helpBtn.addEventListener('click', openTutorial);
+
+    tutorialDots.forEach((dot, i) => {
+      dot.addEventListener('click', () => {
+        currentSlide = i;
+        showSlide(currentSlide);
+      });
+    });
+
+    // Swipe support
+    let touchStartX = 0;
+    tutorialOverlay.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+    });
+    tutorialOverlay.addEventListener('touchend', (e) => {
+      const diff = touchStartX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 50) {
+        if (diff > 0 && currentSlide < totalSlides - 1) {
+          currentSlide++;
+          showSlide(currentSlide);
+        } else if (diff < 0 && currentSlide > 0) {
+          currentSlide--;
+          showSlide(currentSlide);
+        }
+      }
+    });
+
+    if (tutorialSeen) {
+      tutorialOverlay.classList.add('hidden');
+    }
+
+    // View switching
+    const selectionScreen = document.getElementById('selectionScreen');
+    const uploadView = document.getElementById('uploadView');
+    const showGalleryBtn = document.getElementById('showGalleryBtn');
+    const backToSelectionBtn = document.getElementById('backToSelectionBtn');
+
+    showGalleryBtn.addEventListener('click', () => {
+      selectionScreen.classList.add('hidden');
+      uploadView.classList.add('visible');
+    });
+
+    backToSelectionBtn.addEventListener('click', () => {
+      selectionScreen.classList.remove('hidden');
+      uploadView.classList.remove('visible');
+    });
+
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const placeholder = document.getElementById('placeholder');
+    const uploadBox = document.getElementById('uploadBox');
+    const findBtn = document.getElementById('findBtn');
+    const resultCanvas = document.getElementById('resultCanvas');
+    const ctx = resultCanvas.getContext('2d');
+    const status = document.getElementById('status');
+
+    let sourceImg = null;
+    let diffRegions = [];
+    let blinkInterval = null;
+    let halfWidth, halfHeight, splitDirection;
+    let displayWidth, displayHeight;
+    let isOverlayMode = false;
+
+    uploadBox.addEventListener('click', () => fileInput.click());
+
+    uploadBox.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadBox.style.borderColor = '#ff69b4';
+    });
+
+    uploadBox.addEventListener('dragleave', () => {
+      uploadBox.style.borderColor = '#ffb6c1';
+    });
+
+    uploadBox.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadBox.style.borderColor = '#ffb6c1';
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        loadImage(file);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        loadImage(e.target.files[0]);
+      }
+    });
+
+    const alignMethod = document.getElementById('alignMethod');
+    const manualControls = document.getElementById('manualControls');
+    const manualDx = document.getElementById('manualDx');
+    const manualDy = document.getElementById('manualDy');
+    const manualDxValue = document.getElementById('manualDxValue');
+    const manualDyValue = document.getElementById('manualDyValue');
+    const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
+
+    // Settings elements
+    const settingsModal = document.getElementById('settingsModal');
+    const openSettingsBtn = document.getElementById('openSettingsBtn');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const resetSettingsBtn = document.getElementById('resetSettingsBtn');
+    const blinkSpeedSlider = document.getElementById('blinkSpeedSlider');
+    const thresholdSlider = document.getElementById('thresholdSlider');
+    const downsampleScale = document.getElementById('downsampleScale');
+    const maxShiftSlider = document.getElementById('maxShift');
+    const dividerSearchRange = document.getElementById('dividerSearchRange');
+    const detectionMargin = document.getElementById('detectionMargin');
+    const minClusterSize = document.getElementById('minClusterSize');
+    const clusterMergeDistance = document.getElementById('clusterMergeDistance');
+    const maxRegions = document.getElementById('maxRegions');
+
+    let currentAutoOffset = { dx: 0, dy: 0 };
+    let canvas1Ref = null, canvas2Ref = null;
+
+    // Settings defaults
+    const defaultSettings = {
+      blinkSpeed: 400,
+      threshold: 45,
+      downsampleScale: 4,
+      maxShift: 25,
+      dividerSearchRange: 50,
+      detectionMargin: 15,
+      minClusterSize: 30,
+      clusterMergeDistance: 40,
+      maxRegions: 10
+    };
+
+    // Settings modal handlers
+    openSettingsBtn.addEventListener('click', () => {
+      settingsModal.classList.add('visible');
+    });
+
+    closeSettingsBtn.addEventListener('click', () => {
+      settingsModal.classList.remove('visible');
+    });
+
+    settingsModal.addEventListener('click', (e) => {
+      if (e.target === settingsModal) {
+        settingsModal.classList.remove('visible');
+      }
+    });
+
+    resetSettingsBtn.addEventListener('click', () => {
+      blinkSpeedSlider.value = defaultSettings.blinkSpeed;
+      thresholdSlider.value = defaultSettings.threshold;
+      downsampleScale.value = defaultSettings.downsampleScale;
+      maxShiftSlider.value = defaultSettings.maxShift;
+      dividerSearchRange.value = defaultSettings.dividerSearchRange;
+      detectionMargin.value = defaultSettings.detectionMargin;
+      minClusterSize.value = defaultSettings.minClusterSize;
+      clusterMergeDistance.value = defaultSettings.clusterMergeDistance;
+      maxRegions.value = defaultSettings.maxRegions;
+      updateAllSettingDisplays();
+    });
+
+    function updateAllSettingDisplays() {
+      document.getElementById('blinkSpeedValue').textContent = blinkSpeedSlider.value + 'ms';
+      document.getElementById('thresholdValue').textContent = thresholdSlider.value;
+      document.getElementById('downsampleScaleValue').textContent = downsampleScale.value + 'x';
+      document.getElementById('maxShiftValue').textContent = '±' + (maxShiftSlider.value * downsampleScale.value) + 'px';
+      document.getElementById('dividerSearchRangeValue').textContent = '±' + dividerSearchRange.value + 'px';
+      document.getElementById('detectionMarginValue').textContent = detectionMargin.value + 'px';
+      document.getElementById('minClusterSizeValue').textContent = minClusterSize.value + 'px²';
+      document.getElementById('clusterMergeDistanceValue').textContent = clusterMergeDistance.value + 'px';
+      document.getElementById('maxRegionsValue').textContent = maxRegions.value;
+    }
+
+    // Settings slider listeners
+    blinkSpeedSlider.addEventListener('input', () => {
+      document.getElementById('blinkSpeedValue').textContent = blinkSpeedSlider.value + 'ms';
+      if (blinkInterval && !isOverlayMode) {
+        startBlinking();
+      }
+    });
+
+    thresholdSlider.addEventListener('input', () => {
+      document.getElementById('thresholdValue').textContent = thresholdSlider.value;
+    });
+
+    downsampleScale.addEventListener('input', () => {
+      document.getElementById('downsampleScaleValue').textContent = downsampleScale.value + 'x';
+      document.getElementById('maxShiftValue').textContent = '±' + (maxShiftSlider.value * downsampleScale.value) + 'px';
+    });
+
+    maxShiftSlider.addEventListener('input', () => {
+      document.getElementById('maxShiftValue').textContent = '±' + (maxShiftSlider.value * downsampleScale.value) + 'px';
+    });
+
+    dividerSearchRange.addEventListener('input', () => {
+      document.getElementById('dividerSearchRangeValue').textContent = '±' + dividerSearchRange.value + 'px';
+    });
+
+    detectionMargin.addEventListener('input', () => {
+      document.getElementById('detectionMarginValue').textContent = detectionMargin.value + 'px';
+    });
+
+    minClusterSize.addEventListener('input', () => {
+      document.getElementById('minClusterSizeValue').textContent = minClusterSize.value + 'px²';
+    });
+
+    clusterMergeDistance.addEventListener('input', () => {
+      document.getElementById('clusterMergeDistanceValue').textContent = clusterMergeDistance.value + 'px';
+    });
+
+    maxRegions.addEventListener('input', () => {
+      document.getElementById('maxRegionsValue').textContent = maxRegions.value;
+    });
+
+    alignMethod.addEventListener('change', () => {
+      const isManual = alignMethod.value === 'manual';
+
+      // If switching to manual and already showing result, switch to overlay mode
+      if (isManual && canvas1Ref && canvas2Ref) {
+        manualDx.value = currentAutoOffset.dx;
+        manualDy.value = currentAutoOffset.dy;
+        manualDxValue.textContent = currentAutoOffset.dx;
+        manualDyValue.textContent = currentAutoOffset.dy;
+        isOverlayMode = true;
+        toggleOverlayBtn.textContent = '🔄 点滅';
+        manualControls.classList.add('visible');
+        stopBlinking();
+        renderOverlay();
+      } else {
+        // Hide manual controls when switching away from manual
+        manualControls.classList.remove('visible');
+      }
+    });
+
+    toggleOverlayBtn.addEventListener('click', () => {
+      if (!canvas1Ref || !canvas2Ref) return;
+
+      if (isOverlayMode) {
+        // Switch to blink mode - hide controls
+        isOverlayMode = false;
+        manualControls.classList.remove('visible');
+        startBlinking();
+      } else {
+        // Switch to overlay mode - show controls
+        isOverlayMode = true;
+        stopBlinking();
+        toggleOverlayBtn.textContent = '🔄 点滅';
+        manualControls.classList.add('visible');
+        renderOverlay();
+      }
+    });
+
+    manualDx.addEventListener('input', () => {
+      manualDxValue.textContent = manualDx.value;
+      currentAutoOffset.dx = parseInt(manualDx.value);
+      if (alignMethod.value === 'manual' && isOverlayMode) {
+        renderOverlay();
+      }
+    });
+
+    manualDy.addEventListener('input', () => {
+      manualDyValue.textContent = manualDy.value;
+      currentAutoOffset.dy = parseInt(manualDy.value);
+      if (alignMethod.value === 'manual' && isOverlayMode) {
+        renderOverlay();
+      }
+    });
+
+    function renderOverlay() {
+      if (!canvas1Ref || !canvas2Ref) return;
+      const dx = currentAutoOffset.dx;
+      const dy = currentAutoOffset.dy;
+
+      ctx.clearRect(0, 0, displayWidth, displayHeight);
+      ctx.globalAlpha = 1;
+      ctx.drawImage(canvas1Ref, 0, 0);
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(canvas2Ref, dx, dy);
+      ctx.globalAlpha = 1;
+    }
+
+    // Click canvas to return to overlay mode when blinking (manual mode only)
+    resultCanvas.addEventListener('click', () => {
+      if (alignMethod.value === 'manual' && !isOverlayMode && canvas1Ref && canvas2Ref) {
+        isOverlayMode = true;
+        stopBlinking();
+        toggleOverlayBtn.textContent = '🔄 点滅';
+        manualControls.classList.add('visible');
+        renderOverlay();
+      }
+    });
+
+
+    function loadImage(file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        preview.src = event.target.result;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+
+        const img = new Image();
+        img.onload = () => {
+          sourceImg = img;
+          findBtn.disabled = false;
+          status.textContent = '';
+
+          if (img.width > img.height) {
+            document.querySelector('input[name="splitDir"][value="horizontal"]').checked = true;
+          } else {
+            document.querySelector('input[name="splitDir"][value="vertical"]').checked = true;
+          }
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    findBtn.addEventListener('click', findDifferences);
+
+    function findDifferences() {
+      if (!sourceImg) return;
+
+      status.textContent = '';
+
+      const splitDir = document.querySelector('input[name="splitDir"]:checked').value;
+      let width, height;
+
+      if (splitDir === 'horizontal') {
+        splitDirection = 'horizontal';
+        halfWidth = Math.floor(sourceImg.width / 2);
+        halfHeight = sourceImg.height;
+        width = halfWidth;
+        height = halfHeight;
+      } else {
+        splitDirection = 'vertical';
+        halfWidth = sourceImg.width;
+        halfHeight = Math.floor(sourceImg.height / 2);
+        width = halfWidth;
+        height = halfHeight;
+      }
+
+      resultCanvas.width = width;
+      resultCanvas.height = height;
+      displayWidth = width;
+      displayHeight = height;
+
+      // Create canvases for each half
+      const canvas1 = document.createElement('canvas');
+      const canvas2 = document.createElement('canvas');
+      canvas1.width = canvas2.width = width;
+      canvas1.height = canvas2.height = height;
+
+      const ctx1 = canvas1.getContext('2d');
+      const ctx2 = canvas2.getContext('2d');
+
+      // Find the center divider line
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = sourceImg.width;
+      tempCanvas.height = sourceImg.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(sourceImg, 0, 0);
+      const fullData = tempCtx.getImageData(0, 0, sourceImg.width, sourceImg.height);
+
+      let dividerX = halfWidth;
+      let dividerY = halfHeight;
+
+      if (splitDirection === 'horizontal') {
+        // Find darkest vertical line near center
+        dividerX = findDividerLine(fullData, sourceImg.width, sourceImg.height, 'vertical');
+        console.log('Detected divider at x:', dividerX, 'center:', Math.floor(sourceImg.width/2));
+        console.log(`区切り線検出: x=${dividerX} (中央=${Math.floor(sourceImg.width/2)})`);
+
+        // Left image: 0 to dividerX
+        // Right image: dividerX to end
+        const leftWidth = dividerX;
+        const rightWidth = sourceImg.width - dividerX;
+        const useWidth = Math.min(leftWidth, rightWidth);
+
+        ctx1.drawImage(sourceImg, dividerX - useWidth, 0, useWidth, sourceImg.height, 0, 0, width, height);
+        ctx2.drawImage(sourceImg, dividerX, 0, useWidth, sourceImg.height, 0, 0, width, height);
+      } else {
+        // Find darkest horizontal line near center
+        dividerY = findDividerLine(fullData, sourceImg.width, sourceImg.height, 'horizontal');
+        console.log('Detected divider at y:', dividerY);
+
+        const topHeight = dividerY;
+        const bottomHeight = sourceImg.height - dividerY;
+        const useHeight = Math.min(topHeight, bottomHeight);
+
+        ctx1.drawImage(sourceImg, 0, dividerY - useHeight, sourceImg.width, useHeight, 0, 0, width, height);
+        ctx2.drawImage(sourceImg, 0, dividerY, sourceImg.width, useHeight, 0, 0, width, height);
+      }
+
+      const data1 = ctx1.getImageData(0, 0, width, height);
+      const data2 = ctx2.getImageData(0, 0, width, height);
+
+      // Convert to grayscale
+      const gray1 = toGrayscale(data1);
+      const gray2 = toGrayscale(data2);
+
+      // Detect edges
+      const edges1 = detectEdges(gray1, width, height);
+      const edges2 = detectEdges(gray2, width, height);
+
+      // Store references for manual adjustment
+      canvas1Ref = canvas1;
+      canvas2Ref = canvas2;
+
+      const method = document.getElementById('alignMethod').value;
+      const methodName = document.getElementById('methodName');
+      status.textContent = '';
+
+      setTimeout(() => {
+        let dx, dy;
+
+        if (method === 'manual') {
+          methodName.textContent = '方式: 手動調整';
+          dx = parseInt(manualDx.value);
+          dy = parseInt(manualDy.value);
+          status.textContent = '';
+        } else {
+          const scale = parseInt(downsampleScale.value);
+        const sw = Math.floor(width / scale);
+        const sh = Math.floor(height / scale);
+
+        const small1 = downsample(gray1, width, height, scale);
+        const small2 = downsample(gray2, width, height, scale);
+
+        const smallEdge1 = downsample(edges1, width, height, scale);
+        const smallEdge2 = downsample(edges2, width, height, scale);
+
+        const maxShift = parseInt(maxShiftSlider.value);
+        let offset;
+
+        switch (method) {
+          case 'ncc':
+            methodName.textContent = '方式: NCC (正規化相互相関)';
+            offset = findOffsetNCC(small1, small2, sw, sh, maxShift);
+            break;
+          case 'ncc_edge':
+            methodName.textContent = '方式: NCC + エッジ画像';
+            offset = findOffsetNCC(smallEdge1, smallEdge2, sw, sh, maxShift);
+            break;
+          case 'sad':
+            methodName.textContent = '方式: SAD (絶対差の和)';
+            offset = findOffsetSAD(small1, small2, sw, sh, maxShift);
+            break;
+          case 'sad_edge':
+            methodName.textContent = '方式: SAD + エッジ画像';
+            offset = findOffsetSAD(smallEdge1, smallEdge2, sw, sh, maxShift);
+            break;
+          case 'center':
+            methodName.textContent = '方式: 中央領域NCC';
+            offset = findOffsetCenterNCC(small1, small2, sw, sh, maxShift);
+            break;
+          default:
+            offset = { dx: 0, dy: 0, score: 0 };
+        }
+
+          // Note: offset direction seems inverted, so we negate
+          dx = -offset.dx * scale;
+          dy = -offset.dy * scale;
+
+          console.log(`Method: ${method}, offset: (${dx}, ${dy}), score: ${offset.score}`);
+        }
+
+        currentAutoOffset = { dx, dy };
+
+        // Now find actual differences with the aligned images
+        const thresh = parseInt(thresholdSlider.value);
+        const diffMap = new Uint8Array(width * height);
+        const margin = parseInt(detectionMargin.value);
+
+        for (let y = margin; y < height - margin; y++) {
+          for (let x = margin; x < width - margin; x++) {
+            const x2 = x + dx;
+            const y2 = y + dy;
+
+            if (x2 < 0 || x2 >= width || y2 < 0 || y2 >= height) continue;
+
+            const i1 = (y * width + x) * 4;
+            const i2 = (y2 * width + x2) * 4;
+
+            const r1 = data1.data[i1], g1 = data1.data[i1+1], b1 = data1.data[i1+2];
+            const r2 = data2.data[i2], g2 = data2.data[i2+1], b2 = data2.data[i2+2];
+
+            const diff = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+
+            if (diff > thresh) {
+              diffMap[y * width + x] = 1;
+            }
+          }
+        }
+
+        // Find connected components
+        const { clusters } = findConnectedComponents(diffMap, width, height, parseInt(minClusterSize.value));
+
+        // Merge nearby clusters
+        const merged = mergeClusters(clusters, parseInt(clusterMergeDistance.value));
+
+        // Sort by size, filter, take top
+        merged.sort((a, b) => b.size - a.size);
+        const maxArea = width * height * 0.05;
+        const filtered = merged.filter(c => c.size < maxArea && c.size > 30);
+
+        diffRegions = filtered.slice(0, parseInt(maxRegions.value)).map(c => ({
+          centerX: c.centerX,
+          centerY: c.centerY,
+          radius: Math.max(c.width, c.height) / 2 + 10
+        }));
+
+        status.textContent = '';
+
+        // Manual mode starts in overlay mode with controls visible
+        if (method === 'manual') {
+          isOverlayMode = true;
+          toggleOverlayBtn.textContent = '🔄 点滅';
+          manualControls.classList.add('visible');
+          renderOverlay();
+        } else {
+          isOverlayMode = false;
+          manualControls.classList.remove('visible');
+          startBlinking();
+        }
+
+      }, 50);
+    }
+
+    function downsample(gray, width, height, scale) {
+      const sw = Math.floor(width / scale);
+      const sh = Math.floor(height / scale);
+      const result = new Float32Array(sw * sh);
+
+      for (let y = 0; y < sh; y++) {
+        for (let x = 0; x < sw; x++) {
+          let sum = 0;
+          for (let dy = 0; dy < scale; dy++) {
+            for (let dx = 0; dx < scale; dx++) {
+              sum += gray[(y * scale + dy) * width + (x * scale + dx)];
+            }
+          }
+          result[y * sw + x] = sum / (scale * scale);
+        }
+      }
+
+      return result;
+    }
+
+    // NCC: Normalized Cross-Correlation
+    function findOffsetNCC(img1, img2, width, height, maxShift) {
+      let bestOffset = { dx: 0, dy: 0, score: -Infinity };
+      const margin = maxShift;
+
+      for (let dy = -maxShift; dy <= maxShift; dy++) {
+        for (let dx = -maxShift; dx <= maxShift; dx++) {
+          let sum1 = 0, sum2 = 0, sum12 = 0, sum11 = 0, sum22 = 0;
+          let count = 0;
+
+          for (let y = margin; y < height - margin; y++) {
+            for (let x = margin; x < width - margin; x++) {
+              const x2 = x + dx;
+              const y2 = y + dy;
+              if (x2 < 0 || x2 >= width || y2 < 0 || y2 >= height) continue;
+
+              const v1 = img1[y * width + x];
+              const v2 = img2[y2 * width + x2];
+
+              sum1 += v1; sum2 += v2;
+              sum12 += v1 * v2;
+              sum11 += v1 * v1; sum22 += v2 * v2;
+              count++;
+            }
+          }
+
+          if (count === 0) continue;
+          const mean1 = sum1 / count, mean2 = sum2 / count;
+          const var1 = sum11 / count - mean1 * mean1;
+          const var2 = sum22 / count - mean2 * mean2;
+          const cov = sum12 / count - mean1 * mean2;
+          const score = cov / (Math.sqrt(var1 * var2) + 0.0001);
+
+          if (score > bestOffset.score) bestOffset = { dx, dy, score };
+        }
+      }
+      return bestOffset;
+    }
+
+    // SAD: Sum of Absolute Differences (lower is better, so we negate)
+    function findOffsetSAD(img1, img2, width, height, maxShift) {
+      let bestOffset = { dx: 0, dy: 0, score: -Infinity };
+      const margin = maxShift;
+
+      for (let dy = -maxShift; dy <= maxShift; dy++) {
+        for (let dx = -maxShift; dx <= maxShift; dx++) {
+          let sad = 0, count = 0;
+
+          for (let y = margin; y < height - margin; y++) {
+            for (let x = margin; x < width - margin; x++) {
+              const x2 = x + dx;
+              const y2 = y + dy;
+              if (x2 < 0 || x2 >= width || y2 < 0 || y2 >= height) continue;
+
+              sad += Math.abs(img1[y * width + x] - img2[y2 * width + x2]);
+              count++;
+            }
+          }
+
+          const score = -sad / count; // Negate so higher is better
+          if (score > bestOffset.score) bestOffset = { dx, dy, score };
+        }
+      }
+      return bestOffset;
+    }
+
+    // Center-region NCC: Only use central 50% of image
+    function findOffsetCenterNCC(img1, img2, width, height, maxShift) {
+      let bestOffset = { dx: 0, dy: 0, score: -Infinity };
+      const marginX = Math.floor(width * 0.25);
+      const marginY = Math.floor(height * 0.25);
+
+      for (let dy = -maxShift; dy <= maxShift; dy++) {
+        for (let dx = -maxShift; dx <= maxShift; dx++) {
+          let sum1 = 0, sum2 = 0, sum12 = 0, sum11 = 0, sum22 = 0;
+          let count = 0;
+
+          for (let y = marginY; y < height - marginY; y++) {
+            for (let x = marginX; x < width - marginX; x++) {
+              const x2 = x + dx;
+              const y2 = y + dy;
+              if (x2 < 0 || x2 >= width || y2 < 0 || y2 >= height) continue;
+
+              const v1 = img1[y * width + x];
+              const v2 = img2[y2 * width + x2];
+
+              sum1 += v1; sum2 += v2;
+              sum12 += v1 * v2;
+              sum11 += v1 * v1; sum22 += v2 * v2;
+              count++;
+            }
+          }
+
+          if (count === 0) continue;
+          const mean1 = sum1 / count, mean2 = sum2 / count;
+          const var1 = sum11 / count - mean1 * mean1;
+          const var2 = sum22 / count - mean2 * mean2;
+          const cov = sum12 / count - mean1 * mean2;
+          const score = cov / (Math.sqrt(var1 * var2) + 0.0001);
+
+          if (score > bestOffset.score) bestOffset = { dx, dy, score };
+        }
+      }
+      return bestOffset;
+    }
+
+    function findDividerLine(imageData, width, height, direction) {
+      const data = imageData.data;
+      const searchRange = parseInt(dividerSearchRange.value);
+
+      if (direction === 'vertical') {
+        const centerX = Math.floor(width / 2);
+        let darkestX = centerX;
+        let darkestSum = Infinity;
+
+        for (let x = centerX - searchRange; x <= centerX + searchRange; x++) {
+          if (x < 0 || x >= width) continue;
+
+          let sum = 0;
+          // Sample every 5th pixel for speed
+          for (let y = 0; y < height; y += 5) {
+            const i = (y * width + x) * 4;
+            const brightness = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+            sum += brightness;
+          }
+
+          if (sum < darkestSum) {
+            darkestSum = sum;
+            darkestX = x;
+          }
+        }
+
+        return darkestX;
+      } else {
+        const centerY = Math.floor(height / 2);
+        let darkestY = centerY;
+        let darkestSum = Infinity;
+
+        for (let y = centerY - searchRange; y <= centerY + searchRange; y++) {
+          if (y < 0 || y >= height) continue;
+
+          let sum = 0;
+          for (let x = 0; x < width; x += 5) {
+            const i = (y * width + x) * 4;
+            const brightness = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+            sum += brightness;
+          }
+
+          if (sum < darkestSum) {
+            darkestSum = sum;
+            darkestY = y;
+          }
+        }
+
+        return darkestY;
+      }
+    }
+
+    function toGrayscale(imageData) {
+      const gray = new Uint8Array(imageData.width * imageData.height);
+      for (let i = 0; i < gray.length; i++) {
+        const j = i * 4;
+        gray[i] = Math.round(0.299 * imageData.data[j] + 0.587 * imageData.data[j+1] + 0.114 * imageData.data[j+2]);
+      }
+      return gray;
+    }
+
+    function rgbToHsv(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const d = max - min;
+
+      let h = 0;
+      const s = max === 0 ? 0 : d / max;
+      const v = max;
+
+      if (d !== 0) {
+        switch (max) {
+          case r: h = ((g - b) / d + (g < b ? 6 : 0)) * 60; break;
+          case g: h = ((b - r) / d + 2) * 60; break;
+          case b: h = ((r - g) / d + 4) * 60; break;
+        }
+      }
+
+      return { h, s, v };
+    }
+
+    function detectEdges(gray, width, height) {
+      const edges = new Uint8Array(width * height);
+
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          const idx = y * width + x;
+
+          // Sobel operator
+          const gx =
+            -gray[(y-1)*width + (x-1)] + gray[(y-1)*width + (x+1)] +
+            -2*gray[y*width + (x-1)] + 2*gray[y*width + (x+1)] +
+            -gray[(y+1)*width + (x-1)] + gray[(y+1)*width + (x+1)];
+
+          const gy =
+            -gray[(y-1)*width + (x-1)] - 2*gray[(y-1)*width + x] - gray[(y-1)*width + (x+1)] +
+            gray[(y+1)*width + (x-1)] + 2*gray[(y+1)*width + x] + gray[(y+1)*width + (x+1)];
+
+          const magnitude = Math.sqrt(gx * gx + gy * gy);
+          edges[idx] = magnitude > 50 ? 255 : 0;
+        }
+      }
+
+      return edges;
+    }
+
+    function findBestOffset(edges1, edges2, width, height) {
+      const maxOffset = 5;
+      let bestOffset = { dx: 0, dy: 0 };
+      let bestScore = -Infinity;
+
+      for (let dy = -maxOffset; dy <= maxOffset; dy++) {
+        for (let dx = -maxOffset; dx <= maxOffset; dx++) {
+          let score = 0;
+          let count = 0;
+
+          for (let y = maxOffset; y < height - maxOffset; y += 2) {
+            for (let x = maxOffset; x < width - maxOffset; x += 2) {
+              const x2 = x + dx;
+              const y2 = y + dy;
+
+              if (x2 < 0 || x2 >= width || y2 < 0 || y2 >= height) continue;
+
+              const e1 = edges1[y * width + x];
+              const e2 = edges2[y2 * width + x2];
+
+              // Score: both edges present = good, mismatch = bad
+              if (e1 > 0 && e2 > 0) score += 2;
+              else if (e1 > 0 || e2 > 0) score -= 1;
+              count++;
+            }
+          }
+
+          if (count > 0 && score > bestScore) {
+            bestScore = score;
+            bestOffset = { dx, dy };
+          }
+        }
+      }
+
+      return bestOffset;
+    }
+
+    function findConnectedComponents(diffMap, width, height, minSize) {
+      const labels = new Int32Array(width * height);
+      let currentLabel = 0;
+      const clusters = [];
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x;
+          if (diffMap[idx] === 1 && labels[idx] === 0) {
+            currentLabel++;
+            const queue = [[x, y]];
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            let size = 0;
+
+            while (queue.length > 0) {
+              const [cx, cy] = queue.shift();
+              const cidx = cy * width + cx;
+
+              if (cx < 0 || cx >= width || cy < 0 || cy >= height) continue;
+              if (diffMap[cidx] !== 1 || labels[cidx] !== 0) continue;
+
+              labels[cidx] = currentLabel;
+              size++;
+              minX = Math.min(minX, cx);
+              minY = Math.min(minY, cy);
+              maxX = Math.max(maxX, cx);
+              maxY = Math.max(maxY, cy);
+
+              queue.push([cx-1, cy], [cx+1, cy], [cx, cy-1], [cx, cy+1]);
+            }
+
+            if (size >= minSize) {
+              clusters.push({
+                size,
+                centerX: (minX + maxX) / 2,
+                centerY: (minY + maxY) / 2,
+                width: maxX - minX,
+                height: maxY - minY
+              });
+            }
+          }
+        }
+      }
+
+      return { clusters };
+    }
+
+    function mergeClusters(clusters, maxDist) {
+      if (clusters.length === 0) return [];
+
+      const merged = [];
+      const used = new Set();
+
+      for (let i = 0; i < clusters.length; i++) {
+        if (used.has(i)) continue;
+
+        let group = [clusters[i]];
+        used.add(i);
+
+        let changed = true;
+        while (changed) {
+          changed = false;
+          for (let j = 0; j < clusters.length; j++) {
+            if (used.has(j)) continue;
+
+            for (const g of group) {
+              const dx = clusters[j].centerX - g.centerX;
+              const dy = clusters[j].centerY - g.centerY;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+
+              if (dist < maxDist) {
+                group.push(clusters[j]);
+                used.add(j);
+                changed = true;
+                break;
+              }
+            }
+          }
+        }
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let totalSize = 0;
+        for (const c of group) {
+          minX = Math.min(minX, c.centerX - c.width / 2);
+          minY = Math.min(minY, c.centerY - c.height / 2);
+          maxX = Math.max(maxX, c.centerX + c.width / 2);
+          maxY = Math.max(maxY, c.centerY + c.height / 2);
+          totalSize += c.size;
+        }
+
+        merged.push({
+          size: totalSize,
+          centerX: (minX + maxX) / 2,
+          centerY: (minY + maxY) / 2,
+          width: maxX - minX,
+          height: maxY - minY
+        });
+      }
+
+      return merged;
+    }
+
+    function stopBlinking() {
+      if (blinkInterval) {
+        clearInterval(blinkInterval);
+        blinkInterval = null;
+      }
+    }
+
+    function startBlinking() {
+      stopBlinking();
+
+      let showFirst = true;
+      const speed = parseInt(blinkSpeedSlider.value);
+
+      function render() {
+        // Read offset fresh each frame for real-time manual adjustment
+        const dx = currentAutoOffset.dx;
+        const dy = currentAutoOffset.dy;
+
+        if (showFirst) {
+          // Show left/top image
+          ctx.drawImage(canvas1Ref, 0, 0);
+        } else {
+          // Show right/bottom image (aligned)
+          ctx.clearRect(0, 0, displayWidth, displayHeight);
+          ctx.drawImage(canvas2Ref, dx, dy);
+        }
+        showFirst = !showFirst;
+      }
+
+      render();
+      blinkInterval = setInterval(render, speed);
+    }
+  </script>
+</body>
+</html>
