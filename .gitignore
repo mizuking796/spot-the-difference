@@ -6,3 +6,10 @@ server.py
 
 # OS files
 .DS_Store
+
+# Node
+node_modules/
+
+# Playwright
+test-results/
+playwright-report/

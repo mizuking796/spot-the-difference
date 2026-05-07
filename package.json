@@ -1,0 +1,26 @@
+{
+  "name": "spot-the-difference",
+  "version": "1.0.0",
+  "description": "",
+  "main": "sw.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:update": "npx playwright test --update-snapshots"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mizuking796/spot-the-difference.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mizuking796/spot-the-difference/issues"
+  },
+  "homepage": "https://github.com/mizuking796/spot-the-difference#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "serve": "^14.2.6"
+  }
+}
